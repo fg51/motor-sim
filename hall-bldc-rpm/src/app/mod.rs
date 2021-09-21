@@ -1,46 +1,76 @@
 const START: u32 = 8;
 
-pub fn run(q: &mut u32, pwm: &mut PWMControl, ut: &mut USTimer) {
+pub struct ForceRotate {
+    count: u32,
+}
+
+impl ForceRotate {
+    const LOW_SPEED_MAX: u32 = 50;
+
+    pub fn is_no_counted(&self) -> bool {
+        self.count == 0
+    }
+
+    pub fn is_low_speed(&self) -> bool {
+        self.count < Self::LOW_SPEED_MAX
+    }
+
+    pub fn countup(&mut self) {
+        self.count += 1;
+    }
+
+    pub fn reset(&mut self) {
+        self.count = 0;
+    }
+}
+
+pub fn run(q: &mut ForceRotate, hs: &mut HallSensors, pwms: &mut PWMControl, ut: &mut USTimer) {
     let vr_adc = read_v_adc(); //  Vr_adc=V_adc.read();
+                               // let target_speed = vr_adc;
 
     ut.start();
 
     if vr_adc > 0.15 {
-        if *q == 0 {
-            while *q < 50 {
-                pwm.pwm_a.write(0.);
-                pwm.pwm_b.write(0.5);
-                pwm.pwm_c.write(0.);
+        if q.is_no_counted() {
+            while q.is_low_speed() {
+                let (duty, off) = (0.5, 0.);
+                pwms.pwm_a.write(off);
+                pwms.pwm_b.write(duty);
+                pwms.pwm_c.write(off);
                 wait_ms(START);
 
-                pwm.pwm_a.write(0.5);
-                pwm.pwm_b.write(0.);
-                pwm.pwm_c.write(0.);
+                pwms.pwm_a.write(duty);
+                pwms.pwm_b.write(off);
+                pwms.pwm_c.write(off);
                 wait_ms(START);
 
-                pwm.pwm_a.write(0.);
-                pwm.pwm_b.write(0.);
-                pwm.pwm_c.write(0.5);
+                pwms.pwm_a.write(off);
+                pwms.pwm_b.write(off);
+                pwms.pwm_c.write(duty);
                 wait_ms(START);
 
-                *q += 1;
+                q.countup();
             }
         }
     }
 
-    //  HA.rise(&HCH);  //HAH
-    //  HC.fall(&HBL);  //HCL
-    //  HB.rise(&HAH);  //HBH
-    //  HA.fall(&HCL);  //HAL
-    //  HC.rise(&HBH);  //HCH
-    //  HB.fall(&HAL);  //HBL
+    hs.a.at_rise(pwms, None, |pwms, _ut1| pwms.hc_high(vr_adc)); //HAH HA.rise(&HCH);  //HAH
+    hs.c.at_fall(pwms, |pwms| pwms.hb_low()); //  HC.fall(&HBL);  //HCL
+    hs.b.at_rise(pwms, Some(ut), |pwms, ut1| {
+        pwms.ha_high(vr_adc, &mut ut1.unwrap())
+    }); //HBH HB.rise(&HAH);  //HBH
+    hs.a.at_fall(pwms, |pwms| pwms.hc_low()); //  HA.fall(&HCL);  //HAL
+    hs.c.at_rise(pwms, None, |pwms, _ut1| pwms.hb_high(vr_adc)); //  HC.rise(&HBH);  //HCH
+    hs.b.at_fall(pwms, |pwms| pwms.ha_low()); //  HB.fall(&HAL);  //HBL
+
     //  //  s=0;
     if vr_adc < 0.1 {
-        *q = 0;
+        q.reset();
     }
 
-    let us_i = (pwm.ut2() - pwm.ut1()).abs();
-    let rps = 1. / (7.0 * us_i * 1E-6);
+    let us_i = (pwms.ut2() - pwms.ut1()).abs();
+    let num_of_pair = 7;
+    let rps = 1. / (num_of_pair as f32 * us_i * 1E-6);
     let speed_rpm = 60. * rps;
     println!("{:.3} , {:.3} ", speed_rpm, vr_adc); // pc.printf("%.3f , %.3f \r" ,Speed ,Vr_adc);
 
@@ -49,14 +79,54 @@ pub fn run(q: &mut u32, pwm: &mut PWMControl, ut: &mut USTimer) {
     //   myled = !myled;
 }
 
+pub struct HallSensors {
+    pub a: HallSensor,
+    pub b: HallSensor,
+    pub c: HallSensor,
+}
+
+pub struct HallSensor;
+
+impl HallSensor {
+    pub fn at_rise<F: Fn(&mut PWMControl, Option<&mut USTimer>) -> ()>(
+        &self,
+        pwms: &mut PWMControl,
+        ut: Option<&mut USTimer>,
+        f: F,
+    ) {
+        match ut {
+            Some(ut) => f(pwms, Some(ut)),
+            None => f(pwms, None),
+        }
+    }
+
+    pub fn at_fall<F: Fn(&mut PWMControl) -> ()>(&self, pwms: &mut PWMControl, f: F) {
+        f(pwms);
+    }
+}
+
 pub fn read_v_adc() -> f32 {
     todo!();
 }
 
+//pub struct Duty(pub f32);
+//
+//impl Duty {
+//    pub fn new(v: f32) -> Result<Self> {
+//        if v > 1.0 {
+//            todo!();
+//        }
+//        if v < 0. {
+//            todo!();
+//        }
+//        Ok(Self(v))
+//    }
+//}
+
 pub struct PWM {}
 
 impl PWM {
-    pub fn write(&mut self, _x: f32) {
+    pub fn write(&mut self, _duty: f32) {
         todo!();
     }
 }
@@ -65,9 +135,9 @@ pub struct PWMControl {
     r: u32,
     ut1: f32,
     ut2: f32,
-    pwm_a: PWM,
-    pwm_b: PWM,
-    pwm_c: PWM,
+    pub pwm_a: PWM,
+    pub pwm_b: PWM,
+    pub pwm_c: PWM,
 }
 
 impl PWMControl {
