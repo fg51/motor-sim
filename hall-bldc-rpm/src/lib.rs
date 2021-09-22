@@ -1,5 +1,8 @@
 pub mod app;
+pub mod commutation;
 pub mod device;
+pub mod domain;
+pub mod values;
 
 #[cfg(test)]
 mod tests {
