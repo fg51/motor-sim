@@ -92,7 +92,7 @@ impl PWMControl {
 
 pub struct PWM {
     _freq: Freq,
-    duration: Duration,
+    period: Duration,
     is_high: bool,
     duty: Option<f32>,
     next_time: Duration,
@@ -102,7 +102,7 @@ impl PWM {
     pub fn new(freq: Freq) -> Self {
         Self {
             _freq: freq.clone(),
-            duration: freq.into_duration(),
+            period: freq.into_duration(),
             is_high: false,
             duty: None,
             next_time: Duration::from_micros(0),
@@ -119,11 +119,11 @@ impl PWM {
     }
 
     fn on_duration(&self, duty: f64) -> Duration {
-        Duration::from_micros((self.duration.as_micros() as f64 * duty as f64) as u64)
+        Duration::from_micros((self.period.as_micros() as f64 * duty as f64) as u64)
     }
 
     fn off_duration(&self, duty: f64) -> Duration {
-        Duration::from_micros((self.duration.as_micros() as f64 * (1. - duty as f64)) as u64)
+        Duration::from_micros((self.period.as_micros() as f64 * (1. - duty as f64)) as u64)
     }
 
     pub fn update(&mut self, now: Duration) {

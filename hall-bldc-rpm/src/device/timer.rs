@@ -1,18 +1,27 @@
 use std::time::Duration;
 
-pub struct USTimer;
+#[derive(Default)]
+pub struct USTimer {
+    now: Duration,
+    start: Duration,
+}
 
 impl USTimer {
     pub fn start(&mut self) {
-        todo!();
+        self.start = self.now;
     }
 
     pub fn reset(&mut self) {
-        todo!();
+        self.now = Duration::from_micros(0);
+        self.start = Duration::from_micros(0);
     }
 
     pub fn read_us(&self) -> f32 {
-        todo!();
+        (self.now - self.start).as_nanos() as f32 / 1000.
+    }
+
+    pub fn update(&mut self, now: Duration) {
+        self.now = now;
     }
 }
 

@@ -1,3 +1,4 @@
+#[derive(Default)]
 pub struct ForcedCommutation {
     count: u32,
 }
@@ -21,4 +22,3 @@ impl ForcedCommutation {
         self.count = 0;
     }
 }
-

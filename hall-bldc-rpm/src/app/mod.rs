@@ -18,19 +18,24 @@ pub fn main_loop() {
     // initialize();
     let mut world = WorldClock::new(Duration::from_millis(1));
 
+    let mut fc = ForcedCommutation::default();
     let mut pwms = PWMControl::new(PWM_FREQ.khz());
     let mut hss = HallSensors::new();
+    let mut ut = USTimer::default();
+    let mut vadc = Vadc::default();
 
-    //loop {
-    //    //run();
-    //}
+    loop {
+        run(&mut fc, &mut hss, &mut pwms, &mut ut, &vadc);
 
-    // update
-    world.update();
-    //
-    pwms.update(world.now());
-    hss.update(world.now());
-    // ut.update(&world_clock);
+        //  update_with_world();
+        world.update();
+        pwms.update(world.now());
+        hss.update(world.now());
+        ut.update(world.now());
+        vadc.update();
+
+        break;
+    }
 }
 
 pub fn run(
