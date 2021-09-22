@@ -1,4 +1,5 @@
 pub mod app;
+pub mod device;
 
 #[cfg(test)]
 mod tests {
