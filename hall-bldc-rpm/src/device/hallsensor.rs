@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use super::pwm::PWMControl;
 use super::timer::USTimer;
 
@@ -7,9 +9,27 @@ pub struct HallSensors {
     pub c: HallSensor,
 }
 
+impl HallSensors {
+    pub fn new() -> Self {
+        Self {
+            a: HallSensor::new(),
+            b: HallSensor::new(),
+            c: HallSensor::new(),
+        }
+    }
+
+    pub fn update(&mut self, _now: Duration) {
+        todo!();
+    }
+}
+
 pub struct HallSensor;
 
 impl HallSensor {
+    pub fn new() -> Self {
+        Self {}
+    }
+
     pub fn at_rise<F: Fn(&mut PWMControl, f32, Option<&mut USTimer>) -> ()>(
         &self,
         pwms: &mut PWMControl,

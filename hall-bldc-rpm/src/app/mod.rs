@@ -10,22 +10,26 @@ use std::time::Duration;
 
 const START: Duration = Duration::from_millis(8); //[msec]
 
+use crate::values::freq::ExtFreq as _ExtFreq;
+
+const PWM_FREQ: u64 = 50;
+
 pub fn main_loop() {
-    let world = WorldClock::new(Duration::from_millis(1));
     // initialize();
-    loop {
-        //run();
-    }
+    let mut world = WorldClock::new(Duration::from_millis(1));
+
+    let mut pwms = PWMControl::new(PWM_FREQ.khz());
+    let mut hss = HallSensors::new();
+
+    //loop {
+    //    //run();
+    //}
 
     // update
-    // world_clock.update();
+    world.update();
     //
-    // PWMControl.update(&world_clock);
-    // pwm_a.update();
-    // pwm_b.update();
-    // pwm_c.update();
-    //
-    // HallSensors.update(&world_clock);
+    pwms.update(world.now());
+    hss.update(world.now());
     // ut.update(&world_clock);
 }
 

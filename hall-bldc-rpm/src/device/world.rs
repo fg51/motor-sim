@@ -16,4 +16,8 @@ impl WorldClock {
     pub fn update(&mut self) {
         self.now += self.duration;
     }
+
+    pub fn now(&self) -> Duration {
+        self.now
+    }
 }

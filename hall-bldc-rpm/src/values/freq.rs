@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub struct Freq(u64);
 
 impl Freq {
@@ -12,7 +12,7 @@ impl Freq {
     }
 }
 
-trait ExtFreq {
+pub trait ExtFreq {
     fn hz(self) -> Freq;
     fn khz(self) -> Freq;
 }

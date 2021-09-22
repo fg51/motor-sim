@@ -4,61 +4,6 @@ use crate::values::freq::Freq;
 
 use super::timer::USTimer;
 
-pub struct PWM {
-    _freq: Freq,
-    duration: Duration,
-    is_high: bool,
-    duty: Option<f32>,
-    next_time: Duration,
-}
-
-impl PWM {
-    pub fn new(freq: Freq) -> Self {
-        Self {
-            _freq: freq.clone(),
-            duration: freq.into_duration(),
-            is_high: false,
-            duty: None,
-            next_time: Duration::from_micros(0),
-        }
-    }
-
-    pub fn write(&mut self, duty: f32) {
-        if duty == 0.0 {
-            self.duty = None;
-            self.is_high = false;
-        } else {
-            self.duty = Some(duty);
-        }
-    }
-
-    fn on_duration(&self, duty: f64) -> Duration {
-        Duration::from_micros((self.duration.as_micros() as f64 * duty as f64) as u64)
-    }
-
-    fn off_duration(&self, duty: f64) -> Duration {
-        Duration::from_micros((self.duration.as_micros() as f64 * (1. - duty as f64)) as u64)
-    }
-
-    pub fn update(&mut self, now: &Duration) {
-        match self.duty {
-            None => (),
-            Some(duty) => {
-                if *now < self.next_time {
-                    return ();
-                }
-                if self.is_high {
-                    self.is_high = false;
-                    self.next_time = *now + self.off_duration(duty as f64);
-                } else {
-                    self.is_high = true;
-                    self.next_time = *now + self.on_duration(duty as f64);
-                }
-            }
-        }
-    }
-}
-
 pub struct PWMControl {
     r: u32,
     ut1: f32,
@@ -69,6 +14,23 @@ pub struct PWMControl {
 }
 
 impl PWMControl {
+    pub fn new(freq: Freq) -> Self {
+        Self {
+            r: 0,
+            ut1: 0.,
+            ut2: 0.,
+            pwm_a: PWM::new(freq),
+            pwm_b: PWM::new(freq),
+            pwm_c: PWM::new(freq),
+        }
+    }
+
+    pub fn update(&mut self, now: Duration) {
+        self.pwm_a.update(now);
+        self.pwm_b.update(now);
+        self.pwm_c.update(now);
+    }
+
     pub fn ut1(&self) -> f32 {
         self.ut1
     }
@@ -125,5 +87,60 @@ impl PWMControl {
     pub fn hc_low(&mut self) {
         self.pwm_b.write(0.);
         self.pwm_c.write(0.);
+    }
+}
+
+pub struct PWM {
+    _freq: Freq,
+    duration: Duration,
+    is_high: bool,
+    duty: Option<f32>,
+    next_time: Duration,
+}
+
+impl PWM {
+    pub fn new(freq: Freq) -> Self {
+        Self {
+            _freq: freq.clone(),
+            duration: freq.into_duration(),
+            is_high: false,
+            duty: None,
+            next_time: Duration::from_micros(0),
+        }
+    }
+
+    pub fn write(&mut self, duty: f32) {
+        if duty == 0.0 {
+            self.duty = None;
+            self.is_high = false;
+        } else {
+            self.duty = Some(duty);
+        }
+    }
+
+    fn on_duration(&self, duty: f64) -> Duration {
+        Duration::from_micros((self.duration.as_micros() as f64 * duty as f64) as u64)
+    }
+
+    fn off_duration(&self, duty: f64) -> Duration {
+        Duration::from_micros((self.duration.as_micros() as f64 * (1. - duty as f64)) as u64)
+    }
+
+    pub fn update(&mut self, now: Duration) {
+        match self.duty {
+            None => (),
+            Some(duty) => {
+                if now < self.next_time {
+                    return ();
+                }
+                if self.is_high {
+                    self.is_high = false;
+                    self.next_time = now + self.off_duration(duty as f64);
+                } else {
+                    self.is_high = true;
+                    self.next_time = now + self.on_duration(duty as f64);
+                }
+            }
+        }
     }
 }
